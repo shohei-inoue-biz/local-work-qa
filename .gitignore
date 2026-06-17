@@ -22,8 +22,12 @@ secrets/
 credentials/
 
 # ============================================================
-# OS / エディタ生成ファイル
+# Frontend ビルド成果物
 # ============================================================
+frontend/.next/
+frontend/node_modules/
+
+
 .DS_Store
 Thumbs.db
 .idea/
