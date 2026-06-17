@@ -98,6 +98,20 @@ records/{リポジトリ名}/{タスク名}/ に保存して
 
 ---
 
+## ドキュメント
+
+詳細は `docs/` を参照してください。
+
+| ドキュメント | 内容 |
+|---|---|
+| [getting-started.md](./docs/getting-started.md) | インストール・ディレクトリ構造・セキュリティ設計 |
+| [workflow.md](./docs/workflow.md) | シナリオ別の使い方・推奨ルーティン |
+| [scripts.md](./docs/scripts.md) | 各スクリプトのオプション・挙動・出力の詳細 |
+| [record-format.md](./docs/record-format.md) | 記録ファイルのフォーマット・frontmatter・書き方のコツ |
+| [ai-integration.md](./docs/ai-integration.md) | Copilot CLI連携の仕組み・カスタマイズ方法 |
+
+---
+
 ## 記録の構成要素
 
 | フィールド | 説明 |
