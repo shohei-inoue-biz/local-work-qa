@@ -13,7 +13,7 @@
    │
    ├─ コンテキスト収集（zsh履歴・Chrome・AIログ）
    ├─ プロンプト生成
-   └─ Copilot CLI が自動で記録ファイルを生成・保存
+   └─ Codex/Copilot CLI が自動で記録ファイルを生成・保存
 ```
 
 ---
@@ -27,8 +27,20 @@ cd ~/local-work-qa
 ./scripts/auto-record.sh
 ```
 
-Copilot CLI が起動し、今日の作業を分析して `records/` に記録を保存します。  
+Codex または Copilot CLI が起動し、今日の作業を分析して `records/` に記録を保存します。
 確認後に必要なら内容を手で補記してください。
+
+Codex を明示する場合:
+
+```bash
+./scripts/auto-record.sh --agent codex
+```
+
+Copilot を明示する場合:
+
+```bash
+./scripts/auto-record.sh --agent copilot
+```
 
 ---
 
@@ -56,7 +68,7 @@ $EDITOR contexts/2026-06-17-2100.md
 # 生成されたプロンプトを確認
 cat contexts/2026-06-17-2100-prompt.txt
 
-# 問題なければ Copilot CLI のチャットで実行
+# 問題なければ Codex のチャットで実行
 # 「contexts/2026-06-17-2100-prompt.txt を読んで記録を生成して」
 ```
 
@@ -136,7 +148,7 @@ AI に頼らず自分で書きたい場合：
 
 ## tips
 
-- `auto-record.sh` は **別インスタンスの Copilot CLI** を `--allow-all` で起動します。  
+- `auto-record.sh` は **別インスタンスの Codex または Copilot CLI** を起動します。
   ファイルの読み書きやコマンド実行が自動で行われるため、内容が気になる場合は `--dry-run` で先に確認してください。
 - `records/` 直下の `_index.md` は `update-index.sh` で自動生成されます。手動編集は不要です。
 - コンテキストファイル（`contexts/`）は `.gitignore` 対象のため push されません。定期的に削除して構いません。

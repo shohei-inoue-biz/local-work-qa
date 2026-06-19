@@ -2,7 +2,7 @@
 
 ## 概要
 
-`auto-record.sh` は Copilot CLI の非対話モード (`-p/--prompt`) を使って、  
+`auto-record.sh` は Codex CLI または Copilot CLI の非対話モードを使って、
 コンテキスト収集から記録生成・保存まで全自動で行います。
 
 ```
@@ -12,7 +12,7 @@ collect-context.sh
 プロンプト生成
       │ contexts/YYYY-MM-DD-HHMM-prompt.txt
       ▼
-copilot -p "..." --allow-all --add-dir .
+codex exec ... または copilot -p ...
       │
       ├─ コンテキストを分析
       ├─ 問題を特定
@@ -21,6 +21,56 @@ copilot -p "..." --allow-all --add-dir .
 ```
 
 ---
+
+## AI CLI の選び方
+
+`auto-record.sh` は `--agent` で使うAIを選べます。
+
+```bash
+./scripts/auto-record.sh --agent auto
+./scripts/auto-record.sh --agent codex
+./scripts/auto-record.sh --agent copilot
+```
+
+| 値 | 説明 |
+|---|---|
+| `auto` | Codex があれば Codex、なければ Copilot を使う |
+| `codex` | Codex CLI を使う |
+| `copilot` | Copilot CLI を使う |
+
+## Codex CLI の非対話モード
+
+Codex は `exec` サブコマンドで非対話実行できます。
+
+```bash
+codex exec --sandbox workspace-write --ask-for-approval never --cd "$ROOT_DIR" --add-dir "$ROOT_DIR" -
+```
+
+### 主なフラグ
+
+| フラグ | 説明 |
+|---|---|
+| `exec` | Codex を非対話で実行 |
+| `--sandbox workspace-write` | 作業ディレクトリへの書き込みを許可 |
+| `--ask-for-approval never` | 実行中に承認プロンプトを出さない |
+| `--cd <dir>` | Codex の作業ディレクトリ |
+| `--add-dir <dir>` | 追加で書き込み可能にするディレクトリ |
+| `-` | プロンプトを標準入力から読む |
+
+### auto-record.sh での呼び出し方
+
+```bash
+printf '%s\n' "$PROMPT_CONTENT" | codex exec \
+  --sandbox workspace-write \
+  --ask-for-approval never \
+  --cd "$ROOT_DIR" \
+  --add-dir "$ROOT_DIR" \
+  -
+```
+
+- `workspace-write`: `records/` と `contexts/` を書き込めるようにする
+- `approval never`: 自動実行中に確認で止まらないようにする
+- `-`: 長いプロンプトを安全に標準入力で渡す
 
 ## Copilot CLI の非対話モード
 
@@ -40,7 +90,7 @@ copilot -p "プロンプトテキスト" --allow-all
 | `--add-dir <dir>` | 指定ディレクトリへのファイルアクセスを許可 |
 | `--output-format json` | JSONL形式で出力（スクリプト連携に便利） |
 
-### auto-record.sh での呼び出し方
+### Copilot 実行時の呼び出し方
 
 ```bash
 copilot \
@@ -79,26 +129,21 @@ copilot \
 
 ## 対応AIエージェント
 
-### Copilot CLI（標準）
+### Codex CLI（推奨）
 
 `auto-record.sh` が自動検出して使用します。
 
 ```bash
-which copilot  # → /opt/homebrew/bin/copilot など
+which codex
 ```
 
-### Codex CLI
+### Codexログ収集
 
-`~/.codex/logs/` にログが存在する場合、`collect-context.sh` が自動的に収集します。
+`~/.codex/sessions/` や `~/.codex/log/` にログが存在する場合、`collect-context.sh` が自動的に収集します。
 
-将来的に Codex CLI が `-p` モードをサポートした場合、`auto-record.sh` の以下の部分を拡張できます：
+### Copilot CLI
 
-```bash
-# auto-record.sh の AI呼び出し部分を拡張する場合
-if command -v codex &>/dev/null; then
-  codex -p "$PROMPT_CONTENT" ...
-fi
-```
+`auto-record.sh --agent copilot` で使用します。
 
 ### Gemini CLI
 
@@ -108,7 +153,21 @@ fi
 
 ## カスタマイズ
 
-### 別のモデルを使う
+### Codexで別のモデルを使う
+
+`auto-record.sh` の Codex 呼び出し部分に `--model` を追加します。
+
+```bash
+printf '%s\n' "$PROMPT_CONTENT" | "$CODEX_BIN" exec \
+  --model gpt-5 \
+  --sandbox workspace-write \
+  --ask-for-approval never \
+  --cd "$ROOT_DIR" \
+  --add-dir "$ROOT_DIR" \
+  -
+```
+
+### Copilotで別のモデルを使う
 
 ```bash
 copilot --model claude-opus-4.8 --allow-all -p "$PROMPT_CONTENT"
@@ -153,18 +212,20 @@ fi
 
 ## セキュリティ上の注意
 
-### `--allow-all` について
+### 自動実行について
 
-`--allow-all` フラグは Copilot CLI にすべての操作を自動許可します。  
-`auto-record.sh` は `--add-dir` で対象ディレクトリを限定していますが、  
-シェルコマンドの実行は制限されません。
+Codex 実行時は `--sandbox workspace-write --ask-for-approval never` を使います。
+Copilot 実行時は `--allow-all` を使います。
 
-**心配な場合は `--dry-run` でプロンプトを事前確認してください：**
+どちらもAIがファイル作成やコマンド実行を自動で進めます。
+内容が気になる場合は `--dry-run` でプロンプトを事前確認してください。
 
 ```bash
 ./scripts/auto-record.sh --dry-run
-cat contexts/2026-06-17-2100-prompt.txt  # 内容を確認
+cat contexts/2026-06-17-2100-prompt.txt
 ```
+
+確認後、問題なければ `--agent codex` または `--agent copilot` で実行します。
 
 ### コンテキストに含まれる情報
 

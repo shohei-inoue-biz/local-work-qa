@@ -39,7 +39,7 @@ project: my-app
 task: GitHub Actions で CI を設定する
 status: resolved
 tags: [ci, github-actions, docker]
-agent_used: [Copilot CLI]
+agent_used: [Codex CLI]
 ---
 ```
 
@@ -174,7 +174,7 @@ project: my-app
 task: GitHub Actions で CI を設定する
 status: resolved
 tags: [ci, github-actions, docker]
-agent_used: [Copilot CLI]
+agent_used: [Codex CLI]
 ---
 
 # Docker buildx が GitHub Actions 上で失敗する
@@ -236,7 +236,7 @@ ERROR: failed to solve: failed to read dockerfile: open Dockerfile: no such file
 ## 学び・次回への教訓
 
 - `docker/build-push-action` は `working-directory` を無視する。`context` と `file` は常に明示する
-- Copilot CLI に調査を依頼したところ、公式ドキュメントの該当箇所をすぐに特定してくれた
+- Codex CLI に調査を依頼したところ、公式ドキュメントの該当箇所をすぐに特定してくれた
 
 ## 関連記録
 

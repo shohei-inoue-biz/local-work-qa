@@ -25,7 +25,7 @@ local-work-qa/
 └── scripts/
     ├── new-record.sh        # 新規記録作成スクリプト（手動）
     ├── collect-context.sh   # 作業コンテキストを自動収集（履歴・Chrome・AIログ）
-    ├── auto-record.sh       # コンテキスト収集 → Copilot CLI用プロンプト生成
+    ├── auto-record.sh       # コンテキスト収集 → Codex/Copilotで記録生成
     ├── update-index.sh      # インデックス再生成（グローバル＋リポジトリ別）
     ├── search.sh            # キーワード・タグ・ステータスで検索
     ├── status-update.sh     # 記録のステータスを対話形式で更新
@@ -36,32 +36,64 @@ local-work-qa/
 
 ## 記録の作り方
 
-### 方法1: コンテキスト自動収集 → AI生成（推奨）
+### はじめて使う場合
 
-作業終了時に実行するだけ。zsh履歴・Chrome検索履歴・AIログを自動収集してプロンプトを生成する。
+まずは `local-work-qa` に移動して、スクリプトを実行できるようにします。
 
 ```bash
-# コンテキスト収集 + Copilot CLI向けプロンプト生成
+cd ~/local-work-qa
+chmod +x scripts/*.sh
+```
+
+作業が終わったら、次のコマンドを実行します。
+
+```bash
 ./scripts/auto-record.sh
 ```
 
-生成された `contexts/YYYY-MM-DD-HHMM-prompt.txt` を Copilot CLI に渡す：
+これだけで、今日のコマンド履歴・Chrome履歴・Codex/Copilot/Geminiログを集め、Codex または Copilot に記録作成を依頼します。
 
+### 方法1: Codexで自動生成（推奨）
+
+Codex を明示して使う場合:
+
+```bash
+./scripts/auto-record.sh --agent codex
 ```
+
+`records/{project}/{task}/` の下に、問題記録の Markdown ファイルが作成されます。
+
+### 方法2: 内容を確認してからAIに渡す
+
+コンテキストにはブラウザ履歴やAIログが含まれるため、先に内容を確認したい場合はこちらを使います。
+
+```bash
+./scripts/auto-record.sh --dry-run
+```
+
+生成された `contexts/YYYY-MM-DD-HHMM-prompt.txt` を確認してから、Codex にこう依頼します。
+
+```text
 contexts/2026-06-17-2100-prompt.txt を読んで問題記録を生成して
 records/{リポジトリ名}/{タスク名}/ に保存して
 ```
 
-### 方法2: 手動で作成する場合
+### 方法3: Copilot CLIを使う場合
+
+```bash
+./scripts/auto-record.sh --agent copilot
+```
+
+### 方法4: 手動で作成する場合
 
 ```bash
 # 対話形式で新規記録を作成
 ./scripts/new-record.sh
 ```
 
-### 方法3: Copilot CLI に直接依頼する場合
+### 方法5: Codexに直接依頼する場合
 
-```
+```text
 今日のセッションで直面した問題をtemplates/problem.mdの形式でまとめて
 records/{リポジトリ名}/{タスク名}/ に保存して
 ```
@@ -108,7 +140,7 @@ records/{リポジトリ名}/{タスク名}/ に保存して
 | [workflow.md](./docs/workflow.md) | シナリオ別の使い方・推奨ルーティン |
 | [scripts.md](./docs/scripts.md) | 各スクリプトのオプション・挙動・出力の詳細 |
 | [record-format.md](./docs/record-format.md) | 記録ファイルのフォーマット・frontmatter・書き方のコツ |
-| [ai-integration.md](./docs/ai-integration.md) | Copilot CLI連携の仕組み・カスタマイズ方法 |
+| [ai-integration.md](./docs/ai-integration.md) | Codex/Copilot CLI連携の仕組み・カスタマイズ方法 |
 
 ---
 

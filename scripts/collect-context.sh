@@ -6,7 +6,7 @@
 #   - zsh コマンド履歴（直近200件 ※タイムスタンプなしのため近似）
 #   - Chrome ブラウザ検索履歴（今日分）
 #   - Copilot CLI セッションログ（今日分）
-#   - Codex CLI ログ（インストール済みの場合）
+#   - Codex CLI セッションログ（インストール済みの場合）
 #   - Gemini CLI ログ（インストール済みの場合）
 
 set -e
@@ -169,6 +169,9 @@ echo "## 4. Codex CLI ログ" >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
 
 CODEX_LOG_DIRS=(
+  "$HOME/.codex/sessions/$(date +%Y)/$(date +%m)/$(date +%d)"
+  "$HOME/.codex/sessions"
+  "$HOME/.codex/log"
   "$HOME/.codex/logs"
   "$HOME/.local/share/codex/logs"
   "$HOME/Library/Application Support/codex/logs"
@@ -178,7 +181,7 @@ for dir in "${CODEX_LOG_DIRS[@]}"; do
   if [[ -d "$dir" ]]; then
     echo "### $dir" >> "$OUTPUT_FILE"
     echo '```' >> "$OUTPUT_FILE"
-    find "$dir" -name "*.log" -newer "$dir" -mtime -1 -exec tail -100 {} \; 2>/dev/null >> "$OUTPUT_FILE" || true
+    find "$dir" \( -name "*.jsonl" -o -name "*.log" \) -mtime -1 -exec tail -100 {} \; 2>/dev/null >> "$OUTPUT_FILE" || true
     echo '```' >> "$OUTPUT_FILE"
     CODEX_FOUND=1
     echo "✅ Codex CLI: 収集完了"

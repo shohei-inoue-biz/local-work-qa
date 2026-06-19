@@ -13,7 +13,7 @@ read -rp "リポジトリ/プロジェクト名: " PROJECT
 read -rp "タスク名（例: setup-ci, add-auth）: " TASK
 read -rp "問題タイトル（一文）: " TITLE
 read -rp "タグ（カンマ区切り、例: build,ci,docker）: " TAGS_RAW
-read -rp "使用したAIエージェント（例: Copilot CLI）: " AGENT
+read -rp "使用したAIエージェント（例: Codex CLI）: " AGENT
 
 DATE=$(date +%Y-%m-%d)
 TAGS=$(echo "$TAGS_RAW" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | awk '{printf "\"%s\", ", $0}' | sed 's/, $//')

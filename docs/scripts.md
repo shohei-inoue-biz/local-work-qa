@@ -22,6 +22,8 @@
 
 ```bash
 ./scripts/auto-record.sh                          # フル自動
+./scripts/auto-record.sh --agent codex            # Codex CLI を使う
+./scripts/auto-record.sh --agent copilot          # Copilot CLI を使う
 ./scripts/auto-record.sh contexts/YYYY-MM-DD.md  # 既存コンテキストを使用
 ./scripts/auto-record.sh --dry-run               # プロンプト生成のみ（AI呼び出しなし）
 ./scripts/auto-record.sh --help
@@ -31,7 +33,10 @@
 
 | オプション | 説明 |
 |---|---|
-| `--dry-run` | コンテキスト収集とプロンプト生成のみ。Copilot CLI は起動しない |
+| `--agent auto` | 利用可能なAI CLIを自動選択。Codex があれば Codex、なければ Copilot を使う |
+| `--agent codex` / `--codex` | Codex CLI で記録を生成する |
+| `--agent copilot` / `--copilot` | Copilot CLI で記録を生成する |
+| `--dry-run` | コンテキスト収集とプロンプト生成のみ。AI CLI は起動しない |
 | `--help` / `-h` | ヘルプを表示 |
 | `[コンテキストファイル]` | 既存の contexts/*.md を指定すると収集をスキップ |
 
@@ -39,15 +44,29 @@
 
 1. `collect-context.sh` を実行してコンテキストを収集
 2. テンプレート + コンテキストからプロンプトファイル（`*-prompt.txt`）を生成
-3. `copilot -p "..." --allow-all --add-dir .` で Copilot CLI を非対話で起動
-4. Copilot CLI が記録ファイルを `records/` に保存し、`update-index.sh` を実行
+3. Codex CLI または Copilot CLI を非対話で起動
+4. AI CLI が記録ファイルを `records/` に保存し、`update-index.sh` を実行
+
+### Codex 実行時のコマンド
+
+```bash
+codex exec --sandbox workspace-write --ask-for-approval never --cd "$ROOT_DIR" --add-dir "$ROOT_DIR" -
+```
+
+プロンプト本文は標準入力で渡します。`workspace-write` なので、このツールのディレクトリ配下を書き込みできます。
+
+### Copilot 実行時のコマンド
+
+```bash
+copilot --allow-all --add-dir "$ROOT_DIR" -p "$PROMPT_CONTENT"
+```
 
 ### 出力ファイル
 
 | ファイル | 説明 |
 |---|---|
 | `contexts/YYYY-MM-DD-HHMM.md` | 収集したコンテキスト |
-| `contexts/YYYY-MM-DD-HHMM-prompt.txt` | Copilot CLI に渡すプロンプト |
+| `contexts/YYYY-MM-DD-HHMM-prompt.txt` | AI CLI に渡すプロンプト |
 | `records/{project}/{task}/YYYY-MM-DD-{slug}.md` | 生成された問題記録 |
 
 ---
@@ -71,7 +90,7 @@
 | `~/.zsh_history` | 直近200件のコマンド（近似） | 常時（タイムスタンプなし環境では末尾200件） |
 | Chrome History DB | 今日の検索クエリ・訪問URL | `~/Library/.../Chrome/Default/History` が存在する場合 |
 | Copilot CLI セッションDB | 今日の会話ターン | `~/.copilot/session-store.db` が存在する場合 |
-| Codex CLI ログ | 今日のログファイル | `~/.codex/logs/` などが存在する場合 |
+| Codex CLI ログ | 今日のログファイル・セッションJSONL | `~/.codex/sessions/` などが存在する場合 |
 | Gemini CLI ログ | 今日のログファイル | `~/.gemini/logs/` などが存在する場合 |
 
 ### 注意事項
@@ -111,7 +130,7 @@ Firefox や他のブラウザを使う場合は `CHROME_HISTORY` を書き換え
 タスク名（例: setup-ci, add-auth）: setup-ci
 問題タイトル（一文）: Docker buildx が GitHub Actions 上で失敗する
 タグ（カンマ区切り、例: build,ci,docker）: ci,docker,github-actions
-使用したAIエージェント（例: Copilot CLI）: Copilot CLI
+使用したAIエージェント（例: Codex CLI）: Codex CLI
 ```
 
 ### 出力

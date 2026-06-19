@@ -5,7 +5,8 @@
 | ツール | 用途 | 必須 |
 |---|---|---|
 | macOS (bash 3.x+) | スクリプト実行環境 | ✅ |
-| [Copilot CLI](https://docs.github.com/copilot/how-tos/use-copilot-agents/use-copilot-cli) | AI記録生成 | ✅ |
+| Codex CLI | AI記録生成 | 推奨 |
+| Copilot CLI | AI記録生成 | 任意 |
 | zsh | コマンド履歴収集 | ✅ |
 | Google Chrome | ブラウザ履歴収集 | 任意 |
 | python3 | Chrome履歴の日付変換 | 任意 |
@@ -28,14 +29,44 @@ cd ~/local-work-qa
 chmod +x scripts/*.sh
 ```
 
-### 3. Copilot CLI のインストール確認
+### 3. Codex CLI のインストール確認
+
+```bash
+codex --version
+```
+
+`codex` コマンドが見つかれば準備完了です。
+
+Copilot CLI を使いたい場合は、こちらも確認します。
 
 ```bash
 copilot --version
-# GitHub Copilot CLI 1.0.x
 ```
 
-インストールされていない場合は [公式ドキュメント](https://docs.github.com/copilot/how-tos/use-copilot-agents/use-copilot-cli) を参照してください。
+---
+
+## まず1回使ってみる
+
+作業が終わったあとに、次を実行します。
+
+```bash
+cd ~/local-work-qa
+./scripts/auto-record.sh --agent codex
+```
+
+処理の流れは以下です。
+
+1. `contexts/` に今日の作業コンテキストを保存
+2. `contexts/*-prompt.txt` にAIへ渡す指示文を保存
+3. Codex が `records/` に問題記録を作成
+4. `records/_index.md` を更新
+
+先に内容を確認したい場合は、AIを起動しない `--dry-run` を使います。
+
+```bash
+./scripts/auto-record.sh --dry-run
+cat contexts/YYYY-MM-DD-HHMM-prompt.txt
+```
 
 ---
 
@@ -86,4 +117,4 @@ local-work-qa/
 - [ワークフロー](./workflow.md) — 日々の使い方
 - [スクリプトリファレンス](./scripts.md) — 各スクリプトの詳細
 - [記録フォーマット](./record-format.md) — Markdownの書き方
-- [AI連携](./ai-integration.md) — Copilot CLIとの連携の仕組み
+- [AI連携](./ai-integration.md) — Codex/Copilot CLIとの連携の仕組み

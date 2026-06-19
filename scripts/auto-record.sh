@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# auto-record.sh - コンテキストを収集し、Copilot CLI で問題記録を自動生成・保存する
+# auto-record.sh - コンテキストを収集し、AI CLI で問題記録を自動生成・保存する
 # bash 3.x (macOS デフォルト) 互換
 #
 # 使い方:
 #   ./scripts/auto-record.sh                    # コンテキスト収集から記録生成まで全自動
+#   ./scripts/auto-record.sh --agent codex      # Codex CLI で生成
+#   ./scripts/auto-record.sh --agent copilot    # Copilot CLI で生成
 #   ./scripts/auto-record.sh contexts/2026-06-17-1300.md  # 既存のコンテキストを使って生成
 #   ./scripts/auto-record.sh --dry-run          # プロンプトだけ生成して確認（AI呼び出しなし）
 
@@ -15,18 +17,33 @@ TEMPLATE="$ROOT_DIR/templates/problem.md"
 
 DRY_RUN=0
 CONTEXT_ARG=""
+AGENT="auto"
 
-for arg in "$@"; do
+while [[ $# -gt 0 ]]; do
+  arg="$1"
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
+    --agent)
+      shift
+      [[ $# -eq 0 ]] && { echo "--agent には auto / codex / copilot のいずれかを指定してください" >&2; exit 1; }
+      AGENT="$1"
+      ;;
+    --agent=*)
+      AGENT="${arg#--agent=}"
+      ;;
+    --codex) AGENT="codex" ;;
+    --copilot) AGENT="copilot" ;;
     --help|-h)
       cat <<EOF
 使い方:
   $(basename "$0") [オプション] [コンテキストファイル]
 
 オプション:
-  --dry-run    プロンプトファイルだけ生成して AI は呼び出さない
-  -h, --help   このヘルプを表示
+  --agent auto|codex|copilot  使用するAI CLIを選択（初期値: auto）
+  --codex                    --agent codex の短縮形
+  --copilot                  --agent copilot の短縮形
+  --dry-run                  プロンプトファイルだけ生成して AI は呼び出さない
+  -h, --help                 このヘルプを表示
 
 引数を省略すると collect-context.sh を自動実行します。
 EOF
@@ -35,7 +52,13 @@ EOF
     -*) echo "不明なオプション: $arg" >&2; exit 1 ;;
     *)  CONTEXT_ARG="$arg" ;;
   esac
+  shift
 done
+
+case "$AGENT" in
+  auto|codex|copilot) ;;
+  *) echo "不明なAI CLIです: $AGENT（auto / codex / copilot を指定してください）" >&2; exit 1 ;;
+esac
 
 # ========================================
 # コンテキストファイルの準備
@@ -86,7 +109,7 @@ PROMPT
 echo "✅ プロンプトを生成しました: $PROMPT_FILE"
 
 # ========================================
-# Copilot CLI で自動生成
+# AI CLI で自動生成
 # ========================================
 if [[ $DRY_RUN -eq 1 ]]; then
   echo ""
@@ -95,27 +118,68 @@ if [[ $DRY_RUN -eq 1 ]]; then
   exit 0
 fi
 
-COPILOT_BIN=$(which copilot 2>/dev/null || echo "")
-if [[ -z "$COPILOT_BIN" ]]; then
+CODEX_BIN=$(command -v codex 2>/dev/null || echo "")
+COPILOT_BIN=$(command -v copilot 2>/dev/null || echo "")
+
+if [[ "$AGENT" == "auto" ]]; then
+  if [[ -n "$CODEX_BIN" ]]; then
+    AGENT="codex"
+  elif [[ -n "$COPILOT_BIN" ]]; then
+    AGENT="copilot"
+  fi
+fi
+
+if [[ "$AGENT" == "auto" ]]; then
+  echo ""
+  echo "⚠️  codex / copilot コマンドが見つかりませんでした。"
+  echo "手動でプロンプトを Codex または Copilot CLI に渡してください:"
+  echo ""
+  echo "  「$PROMPT_FILE を読んで問題記録を生成・保存して」"
+  exit 0
+fi
+
+if [[ "$AGENT" == "codex" && -z "$CODEX_BIN" ]]; then
+  echo ""
+  echo "⚠️  codex コマンドが見つかりませんでした。"
+  echo "手動でプロンプトを Codex に渡してください:"
+  echo ""
+  echo "  「$PROMPT_FILE を読んで問題記録を生成・保存して」"
+  exit 0
+fi
+
+if [[ "$AGENT" == "copilot" && -z "$COPILOT_BIN" ]]; then
   echo ""
   echo "⚠️  copilot コマンドが見つかりませんでした。"
-  echo "手動でプロンプトを Copilot CLI に渡してください:"
+  echo "手動でプロンプトを Copilot CLI または Codex に渡してください:"
   echo ""
   echo "  「$PROMPT_FILE を読んで問題記録を生成・保存して」"
   exit 0
 fi
 
 echo ""
-echo "🤖 Copilot CLI で記録を生成しています..."
-echo "   （--allow-all で自動実行します）"
+echo "🤖 ${AGENT} で記録を生成しています..."
+if [[ "$AGENT" == "codex" ]]; then
+  echo "   （workspace-write / approval never で実行します）"
+else
+  echo "   （--allow-all で自動実行します）"
+fi
 echo ""
 
 PROMPT_CONTENT=$(cat "$PROMPT_FILE")
 
-"$COPILOT_BIN" \
-  --allow-all \
-  --add-dir "$ROOT_DIR" \
-  -p "$PROMPT_CONTENT"
+if [[ "$AGENT" == "codex" ]]; then
+  printf '%s\n' "$PROMPT_CONTENT" | "$CODEX_BIN" exec \
+    --sandbox workspace-write \
+    --ask-for-approval never \
+    --cd "$ROOT_DIR" \
+    --add-dir "$ROOT_DIR" \
+    -
+else
+  "$COPILOT_BIN" \
+    --allow-all \
+    --add-dir "$ROOT_DIR" \
+    -p "$PROMPT_CONTENT"
+fi
 
 echo ""
 echo "✅ 完了。records/ に記録が保存されているか確認してください:"
