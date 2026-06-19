@@ -15,18 +15,22 @@ TEMPLATE="$ROOT_DIR/templates/problem.md"
 
 DRY_RUN=0
 CONTEXT_ARG=""
+AGENT="auto"
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
+    --agent=*) AGENT="${arg#--agent=}" ;;
     --help|-h)
       cat <<EOF
 使い方:
   $(basename "$0") [オプション] [コンテキストファイル]
 
 オプション:
-  --dry-run    プロンプトファイルだけ生成して AI は呼び出さない
-  -h, --help   このヘルプを表示
+  --agent=<cli>  使用する AI CLI を指定 (auto / copilot / codex)  デフォルト: auto
+                 auto: copilot を優先し、なければ codex にフォールバック
+  --dry-run      プロンプトファイルだけ生成して AI は呼び出さない
+  -h, --help     このヘルプを表示
 
 引数を省略すると collect-context.sh を自動実行します。
 EOF
@@ -36,6 +40,11 @@ EOF
     *)  CONTEXT_ARG="$arg" ;;
   esac
 done
+
+case "$AGENT" in
+  auto|copilot|codex) ;;
+  *) echo "❌ --agent の値が不正です: $AGENT (auto / copilot / codex)" >&2; exit 1 ;;
+esac
 
 # ========================================
 # コンテキストファイルの準備
@@ -86,7 +95,7 @@ PROMPT
 echo "✅ プロンプトを生成しました: $PROMPT_FILE"
 
 # ========================================
-# Copilot CLI で自動生成
+# AI CLI で自動生成
 # ========================================
 if [[ $DRY_RUN -eq 1 ]]; then
   echo ""
@@ -96,26 +105,60 @@ if [[ $DRY_RUN -eq 1 ]]; then
 fi
 
 COPILOT_BIN=$(which copilot 2>/dev/null || echo "")
-if [[ -z "$COPILOT_BIN" ]]; then
-  echo ""
-  echo "⚠️  copilot コマンドが見つかりませんでした。"
-  echo "手動でプロンプトを Copilot CLI に渡してください:"
-  echo ""
-  echo "  「$PROMPT_FILE を読んで問題記録を生成・保存して」"
-  exit 0
-fi
+CODEX_BIN=$(which codex 2>/dev/null || echo "")
 
-echo ""
-echo "🤖 Copilot CLI で記録を生成しています..."
-echo "   （--allow-all で自動実行します）"
-echo ""
+# 使用する CLI を解決する
+RESOLVED_AGENT=""
+case "$AGENT" in
+  copilot)
+    if [[ -z "$COPILOT_BIN" ]]; then
+      echo "❌ copilot コマンドが見つかりません。インストールを確認してください。" >&2; exit 1
+    fi
+    RESOLVED_AGENT="copilot"
+    ;;
+  codex)
+    if [[ -z "$CODEX_BIN" ]]; then
+      echo "❌ codex コマンドが見つかりません。インストールを確認してください。" >&2; exit 1
+    fi
+    RESOLVED_AGENT="codex"
+    ;;
+  auto)
+    if [[ -n "$COPILOT_BIN" ]]; then
+      RESOLVED_AGENT="copilot"
+    elif [[ -n "$CODEX_BIN" ]]; then
+      echo "ℹ️  copilot が見つかりません。codex にフォールバックします。"
+      RESOLVED_AGENT="codex"
+    else
+      echo ""
+      echo "⚠️  copilot / codex コマンドが見つかりませんでした。"
+      echo "手動でプロンプトを AI CLI に渡してください:"
+      echo ""
+      echo "  「$PROMPT_FILE を読んで問題記録を生成・保存して」"
+      exit 0
+    fi
+    ;;
+esac
 
 PROMPT_CONTENT=$(cat "$PROMPT_FILE")
 
-"$COPILOT_BIN" \
-  --allow-all \
-  --add-dir "$ROOT_DIR" \
-  -p "$PROMPT_CONTENT"
+echo ""
+echo "🤖 ${RESOLVED_AGENT} CLI で記録を生成しています..."
+
+if [[ "$RESOLVED_AGENT" == "copilot" ]]; then
+  echo "   （--allow-all で自動実行します）"
+  echo ""
+  "$COPILOT_BIN" \
+    --allow-all \
+    --add-dir "$ROOT_DIR" \
+    -p "$PROMPT_CONTENT"
+else
+  echo "   （workspace-write サンドボックスで自動実行します）"
+  echo ""
+  cd "$ROOT_DIR"
+  "$CODEX_BIN" exec \
+    -s workspace-write \
+    "$PROMPT_CONTENT"
+fi
 
 echo ""
 echo "✅ 完了。records/ に記録が保存されているか確認してください:"

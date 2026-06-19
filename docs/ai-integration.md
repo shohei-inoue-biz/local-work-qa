@@ -2,8 +2,9 @@
 
 ## 概要
 
-`auto-record.sh` は Copilot CLI の非対話モード (`-p/--prompt`) を使って、  
-コンテキスト収集から記録生成・保存まで全自動で行います。
+`auto-record.sh` は AI CLI の非対話モードを使って、  
+コンテキスト収集から記録生成・保存まで全自動で行います。  
+デフォルトは Copilot CLI で、`--agent` オプションで Codex CLI に切り替えられます。
 
 ```
 collect-context.sh
@@ -12,12 +13,30 @@ collect-context.sh
 プロンプト生成
       │ contexts/YYYY-MM-DD-HHMM-prompt.txt
       ▼
-copilot -p "..." --allow-all --add-dir .
+AI CLI（--agent で選択）
       │
-      ├─ コンテキストを分析
-      ├─ 問題を特定
-      ├─ records/{project}/{task}/YYYY-MM-DD-{slug}.md を作成
-      └─ update-index.sh を実行
+      ├─ copilot --allow-all --add-dir .  （デフォルト）
+      └─ codex exec -s workspace-write    （--agent=codex）
+            │
+            ├─ コンテキストを分析
+            ├─ 問題を特定
+            ├─ records/{project}/{task}/YYYY-MM-DD-{slug}.md を作成
+            └─ update-index.sh を実行
+```
+
+---
+
+## --agent オプション
+
+| 値 | 挙動 |
+|---|---|
+| `auto`（デフォルト） | `copilot` を優先。見つからなければ `codex` にフォールバック |
+| `copilot` | Copilot CLI のみ使用。未インストールならエラー終了 |
+| `codex` | Codex CLI のみ使用。未インストールならエラー終了 |
+
+```bash
+./scripts/auto-record.sh               # auto（copilot 優先）
+./scripts/auto-record.sh --agent=codex # Codex CLI を明示指定
 ```
 
 ---
@@ -42,6 +61,8 @@ copilot -p "プロンプトテキスト" --allow-all
 
 ### auto-record.sh での呼び出し方
 
+**Copilot CLI（デフォルト）:**
+
 ```bash
 copilot \
   --allow-all \
@@ -49,9 +70,22 @@ copilot \
   -p "$PROMPT_CONTENT"
 ```
 
-- `--allow-all`: ファイル作成・シェル実行をすべて自動許可
-- `--add-dir`: `records/` への書き込みを許可するため local-work-qa のルートを指定
-- `-p`: 生成したプロンプトファイルの内容を渡す
+**Codex CLI（`--agent=codex` 指定時）:**
+
+```bash
+cd "$ROOT_DIR"
+codex exec \
+  -s workspace-write \
+  "$PROMPT_CONTENT"
+```
+
+| フラグ | CLI | 説明 |
+|---|---|---|
+| `--allow-all` | Copilot | ファイル作成・シェル実行をすべて自動許可 |
+| `--add-dir` | Copilot | `records/` への書き込みを許可するためルートを指定 |
+| `-p` | Copilot | プロンプト内容を渡す |
+| `-s workspace-write` | Codex | ワークスペース書き込みを許可するサンドボックスモード |
+| `exec` | Codex | 非対話（ワンショット）実行サブコマンド |
 
 ---
 
@@ -79,7 +113,7 @@ copilot \
 
 ## 対応AIエージェント
 
-### Copilot CLI（標準）
+### Copilot CLI（標準・デフォルト）
 
 `auto-record.sh` が自動検出して使用します。
 
@@ -89,20 +123,19 @@ which copilot  # → /opt/homebrew/bin/copilot など
 
 ### Codex CLI
 
-`~/.codex/logs/` にログが存在する場合、`collect-context.sh` が自動的に収集します。
-
-将来的に Codex CLI が `-p` モードをサポートした場合、`auto-record.sh` の以下の部分を拡張できます：
+`--agent=codex` オプションで使用できます。
 
 ```bash
-# auto-record.sh の AI呼び出し部分を拡張する場合
-if command -v codex &>/dev/null; then
-  codex -p "$PROMPT_CONTENT" ...
-fi
+./scripts/auto-record.sh --agent=codex
 ```
+
+`codex exec -s workspace-write` で非対話実行します。  
+`workspace-write` サンドボックスにより、リポジトリルートへの書き込みが許可されます。
 
 ### Gemini CLI
 
-`~/.gemini/logs/` または `~/.config/gemini/logs/` にログが存在する場合、自動収集します。
+現時点では実行エージェントとして未対応です。  
+`collect-context.sh` によるログ**収集**（`~/.gemini/logs/` など）のみ対応しています。
 
 ---
 

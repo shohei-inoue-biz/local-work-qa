@@ -25,7 +25,7 @@ local-work-qa/
 └── scripts/
     ├── new-record.sh        # 新規記録作成スクリプト（手動）
     ├── collect-context.sh   # 作業コンテキストを自動収集（履歴・Chrome・AIログ）
-    ├── auto-record.sh       # コンテキスト収集 → Copilot CLI用プロンプト生成
+    ├── auto-record.sh       # コンテキスト収集 → AI CLI で記録を自動生成・保存
     ├── update-index.sh      # インデックス再生成（グローバル＋リポジトリ別）
     ├── search.sh            # キーワード・タグ・ステータスで検索
     ├── status-update.sh     # 記録のステータスを対話形式で更新
@@ -38,18 +38,18 @@ local-work-qa/
 
 ### 方法1: コンテキスト自動収集 → AI生成（推奨）
 
-作業終了時に実行するだけ。zsh履歴・Chrome検索履歴・AIログを自動収集してプロンプトを生成する。
+作業終了時に実行するだけ。zsh履歴・Chrome検索履歴・AIログを自動収集し、  
+Copilot CLI（デフォルト）または Codex CLI で問題記録を生成・保存する。
 
 ```bash
-# コンテキスト収集 + Copilot CLI向けプロンプト生成
+# コンテキスト収集 + 記録自動生成（Copilot CLI を使用）
 ./scripts/auto-record.sh
-```
 
-生成された `contexts/YYYY-MM-DD-HHMM-prompt.txt` を Copilot CLI に渡す：
+# Codex CLI を使う場合
+./scripts/auto-record.sh --agent=codex
 
-```
-contexts/2026-06-17-2100-prompt.txt を読んで問題記録を生成して
-records/{リポジトリ名}/{タスク名}/ に保存して
+# プロンプトだけ生成して AI 呼び出しをスキップ（内容確認用）
+./scripts/auto-record.sh --dry-run
 ```
 
 ### 方法2: 手動で作成する場合
@@ -108,7 +108,8 @@ records/{リポジトリ名}/{タスク名}/ に保存して
 | [workflow.md](./docs/workflow.md) | シナリオ別の使い方・推奨ルーティン |
 | [scripts.md](./docs/scripts.md) | 各スクリプトのオプション・挙動・出力の詳細 |
 | [record-format.md](./docs/record-format.md) | 記録ファイルのフォーマット・frontmatter・書き方のコツ |
-| [ai-integration.md](./docs/ai-integration.md) | Copilot CLI連携の仕組み・カスタマイズ方法 |
+| [ai-integration.md](./docs/ai-integration.md) | Copilot CLI / Codex CLI 連携の仕組み・`--agent` オプション |
+| [token-analytics.md](./docs/token-analytics.md) | トークン使用量の分析・他操作との比較・削減アプローチ |
 
 ---
 
@@ -126,4 +127,3 @@ records/{リポジトリ名}/{タスク名}/ に保存して
 | `lessons` | 学び・次回への教訓 |
 | `agent_used` | 使ったAIエージェント・ツール |
 | `tags` | 分類タグ |
-# local-work-qa

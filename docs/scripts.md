@@ -21,8 +21,9 @@
 ### 使い方
 
 ```bash
-./scripts/auto-record.sh                          # フル自動
+./scripts/auto-record.sh                          # フル自動（copilot 優先）
 ./scripts/auto-record.sh contexts/YYYY-MM-DD.md  # 既存コンテキストを使用
+./scripts/auto-record.sh --agent=codex            # Codex CLI を使用
 ./scripts/auto-record.sh --dry-run               # プロンプト生成のみ（AI呼び出しなし）
 ./scripts/auto-record.sh --help
 ```
@@ -31,16 +32,25 @@
 
 | オプション | 説明 |
 |---|---|
-| `--dry-run` | コンテキスト収集とプロンプト生成のみ。Copilot CLI は起動しない |
+| `--agent=<cli>` | 使用する AI CLI を指定 (`auto` / `copilot` / `codex`)。デフォルト: `auto` |
+| `--dry-run` | コンテキスト収集とプロンプト生成のみ。AI CLI は起動しない |
 | `--help` / `-h` | ヘルプを表示 |
 | `[コンテキストファイル]` | 既存の contexts/*.md を指定すると収集をスキップ |
+
+### `--agent` の挙動
+
+| 値 | 挙動 |
+|---|---|
+| `auto`（デフォルト） | `copilot` を優先。見つからなければ `codex` にフォールバック |
+| `copilot` | `copilot` のみ使用。未インストールならエラー終了 |
+| `codex` | `codex` のみ使用。未インストールならエラー終了 |
 
 ### 処理の流れ
 
 1. `collect-context.sh` を実行してコンテキストを収集
 2. テンプレート + コンテキストからプロンプトファイル（`*-prompt.txt`）を生成
-3. `copilot -p "..." --allow-all --add-dir .` で Copilot CLI を非対話で起動
-4. Copilot CLI が記録ファイルを `records/` に保存し、`update-index.sh` を実行
+3. `--agent` で指定した CLI（デフォルト: `copilot`）を非対話で起動
+4. AI CLI が記録ファイルを `records/` に保存し、`update-index.sh` を実行
 
 ### 出力ファイル
 
