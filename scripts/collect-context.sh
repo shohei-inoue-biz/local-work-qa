@@ -77,6 +77,7 @@ echo "" >> "$OUTPUT_FILE"
 
 if [[ -f "$CHROME_HISTORY" ]]; then
   TMP_CHROME=$(mktemp /tmp/chrome_context_XXXXXX.db)
+  trap "rm -f $TMP_CHROME" EXIT
   cp "$CHROME_HISTORY" "$TMP_CHROME"
 
   # Chrome の時刻は WebKit epoch (1601-01-01) からのマイクロ秒
