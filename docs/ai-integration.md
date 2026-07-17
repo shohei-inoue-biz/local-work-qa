@@ -133,7 +133,7 @@ which copilot  # → /opt/homebrew/bin/copilot など
 `workspace-write` サンドボックスにより、リポジトリルートへの書き込みが許可されます。
 
 `collect-context.sh` は `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（JSONL形式のセッションログ）から  
-今日実行され、かつ `cwd` が対象リポジトリ配下のセッションのみを抽出し、  
+今日実行されたセッションを（プロジェクトを問わず）全て抽出し、  
 `user_message` / `agent_message` イベントを会話形式でコンテキストに含めます。
 
 ### Gemini CLI

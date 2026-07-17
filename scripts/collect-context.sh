@@ -174,13 +174,13 @@ echo "" >> "$OUTPUT_FILE"
 CODEX_SESSIONS_DIR="$HOME/.codex/sessions/$(date +%Y)/$(date +%m)/$(date +%d)"
 
 if [[ -d "$CODEX_SESSIONS_DIR" ]] && ls "$CODEX_SESSIONS_DIR"/rollout-*.jsonl >/dev/null 2>&1; then
-  CODEX_TURNS=$(python3 - "$CODEX_SESSIONS_DIR" "$ROOT_DIR" <<'PYEOF'
+  # プロジェクトを問わず、今日実行された全セッションを対象にする
+  CODEX_TURNS=$(python3 - "$CODEX_SESSIONS_DIR" <<'PYEOF'
 import json
 import sys
 from pathlib import Path
 
 sessions_dir = Path(sys.argv[1])
-root_dir = Path(sys.argv[2]).resolve()
 
 lines_out = []
 for jsonl_path in sorted(sessions_dir.glob("rollout-*.jsonl")):
@@ -217,14 +217,6 @@ for jsonl_path in sorted(sessions_dir.glob("rollout-*.jsonl")):
     if not turns:
         continue
 
-    # 対象リポジトリ配下で実行されたセッションのみ対象にする
-    if cwd:
-        try:
-            if root_dir not in Path(cwd).resolve().parents and Path(cwd).resolve() != root_dir:
-                continue
-        except OSError:
-            pass
-
     lines_out.append(f"### {jsonl_path.name} (cwd: {cwd})")
     for role, text in turns:
         lines_out.append(f"{role}: {text}")
@@ -240,8 +232,8 @@ PYEOF
     echo '```' >> "$OUTPUT_FILE"
     echo "✅ Codex CLI: 収集完了"
   else
-    echo "*今日のセッションデータ（このリポジトリ配下）はありません*" >> "$OUTPUT_FILE"
-    echo "⚠️  Codex CLI: 今日のセッションなし（このリポジトリ配下）"
+    echo "*今日のセッションデータはありません*" >> "$OUTPUT_FILE"
+    echo "⚠️  Codex CLI: 今日のセッションなし"
   fi
 else
   echo "*Codex CLI のセッションログが見つかりませんでした（$CODEX_SESSIONS_DIR）*" >> "$OUTPUT_FILE"
