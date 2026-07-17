@@ -164,31 +164,88 @@ fi
 echo "" >> "$OUTPUT_FILE"
 
 # ========================================
-# 4. Codex CLI ログ（インストール済みの場合）
+# 4. Codex CLI セッションログ（今日分）
 # ========================================
-echo "## 4. Codex CLI ログ" >> "$OUTPUT_FILE"
+# Codex CLI は ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl に
+# セッションを JSONL 形式で記録する（ログディレクトリではない）。
+echo "## 4. Codex CLI セッション（今日）" >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
 
-CODEX_LOG_DIRS=(
-  "$HOME/.codex/logs"
-  "$HOME/.local/share/codex/logs"
-  "$HOME/Library/Application Support/codex/logs"
+CODEX_SESSIONS_DIR="$HOME/.codex/sessions/$(date +%Y)/$(date +%m)/$(date +%d)"
+
+if [[ -d "$CODEX_SESSIONS_DIR" ]] && ls "$CODEX_SESSIONS_DIR"/rollout-*.jsonl >/dev/null 2>&1; then
+  CODEX_TURNS=$(python3 - "$CODEX_SESSIONS_DIR" "$ROOT_DIR" <<'PYEOF'
+import json
+import sys
+from pathlib import Path
+
+sessions_dir = Path(sys.argv[1])
+root_dir = Path(sys.argv[2]).resolve()
+
+lines_out = []
+for jsonl_path in sorted(sessions_dir.glob("rollout-*.jsonl")):
+    cwd = None
+    turns = []
+    try:
+        with jsonl_path.open(encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                entry_type = entry.get("type")
+                payload = entry.get("payload", {})
+                if entry_type == "session_meta":
+                    cwd = payload.get("cwd")
+                    continue
+                if entry_type != "event_msg":
+                    continue
+                if payload.get("type") == "user_message":
+                    msg = (payload.get("message") or "").strip()
+                    if msg:
+                        turns.append(("USER", msg[:500]))
+                elif payload.get("type") == "agent_message":
+                    msg = (payload.get("message") or "").strip()
+                    if msg:
+                        turns.append(("ASSISTANT", msg[:500]))
+    except OSError:
+        continue
+
+    if not turns:
+        continue
+
+    # 対象リポジトリ配下で実行されたセッションのみ対象にする
+    if cwd:
+        try:
+            if root_dir not in Path(cwd).resolve().parents and Path(cwd).resolve() != root_dir:
+                continue
+        except OSError:
+            pass
+
+    lines_out.append(f"### {jsonl_path.name} (cwd: {cwd})")
+    for role, text in turns:
+        lines_out.append(f"{role}: {text}")
+    lines_out.append("")
+
+print("\n".join(lines_out))
+PYEOF
 )
-CODEX_FOUND=0
-for dir in "${CODEX_LOG_DIRS[@]}"; do
-  if [[ -d "$dir" ]]; then
-    echo "### $dir" >> "$OUTPUT_FILE"
+
+  if [[ -n "$CODEX_TURNS" ]]; then
     echo '```' >> "$OUTPUT_FILE"
-    find "$dir" -name "*.log" -newer "$dir" -mtime -1 -exec tail -100 {} \; 2>/dev/null >> "$OUTPUT_FILE" || true
+    echo "$CODEX_TURNS" >> "$OUTPUT_FILE"
     echo '```' >> "$OUTPUT_FILE"
-    CODEX_FOUND=1
     echo "✅ Codex CLI: 収集完了"
-    break
+  else
+    echo "*今日のセッションデータ（このリポジトリ配下）はありません*" >> "$OUTPUT_FILE"
+    echo "⚠️  Codex CLI: 今日のセッションなし（このリポジトリ配下）"
   fi
-done
-if [[ $CODEX_FOUND -eq 0 ]]; then
-  echo "*Codex CLI がインストールされていないか、ログが見つかりませんでした*" >> "$OUTPUT_FILE"
-  echo "⚠️  Codex CLI: 未インストール（スキップ）"
+else
+  echo "*Codex CLI のセッションログが見つかりませんでした（$CODEX_SESSIONS_DIR）*" >> "$OUTPUT_FILE"
+  echo "⚠️  Codex CLI: セッションログが見つかりません"
 fi
 
 echo "" >> "$OUTPUT_FILE"

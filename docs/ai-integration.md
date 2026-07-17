@@ -132,6 +132,10 @@ which copilot  # → /opt/homebrew/bin/copilot など
 `codex exec -s workspace-write` で非対話実行します。  
 `workspace-write` サンドボックスにより、リポジトリルートへの書き込みが許可されます。
 
+`collect-context.sh` は `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`（JSONL形式のセッションログ）から  
+今日実行され、かつ `cwd` が対象リポジトリ配下のセッションのみを抽出し、  
+`user_message` / `agent_message` イベントを会話形式でコンテキストに含めます。
+
 ### Gemini CLI
 
 現時点では実行エージェントとして未対応です。  
